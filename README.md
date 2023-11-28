@@ -7,10 +7,13 @@ Generate certs for local development
   - [Generate Certs for localhost](#generate-certs-for-localhost)
   - [Generate Certs for Apps running on your LAN](#generate-certs-for-apps-running-on-your-lan)
 - [Installing the Certificate Authority](#installing-the-certificate-authority)
-  - [In Chrome](#in-chrome)
+  - [On Windows](#on-windows)
+  - [On OSX](#on-osx)
+  - [On Linux](#on-linux)
   - [In Firefox](#in-firefox)
   - [On Android](#on-android)
 - [Run Your App With the Certs](#run-your-app-with-the-certs)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -60,16 +63,18 @@ Run `./bin/gen-certs.sh -f "lan-apps" -i "192.168.1.337"`
 
 ## Installing the Certificate Authority
 
-### In Chrome
 
-**Windows**
+### On Windows
+
 - Settings > In the top input, filter by `cert` > Click `Security`
 - Click on `Manage certificates`
 - Go the `Trusted Root Certification Authorities` tab
 - Choose `Import`
 - Find the `<CERTS>/localhost-CA.crt` file, and add it.
 
-**OSX**
+
+### On OSX
+
 - One-liner: `sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" "./certs.localhost/localhost-CA.crt"`
 - One-liner (vhost): `sudo security add-trusted-cert -d -r trustRoot -k "/Library/Keychains/System.keychain" "./certs.app.local/app.local.crt"`
    - Open Spotlight (`CMD + SPACE`), select Keychain, go to System. You should see `localhost (CA)` listed, and with a blue plus icon.
@@ -83,13 +88,38 @@ If the above doesn't work, follow the manual instructions below.
    - Expand the Trust section
    - Choose `Always Trust` for the `When using this certificate` dropdown. Close the pop-up.
 
-**Linux**
+
+### On Linux
+
 ```sh
-sudo cp ./certs.localhost/localhost-CA.crt /etc/ca-certificates/trust-source/anchors/
-sudo trust extract-compat
+# ==============================================================================
+# [ Arch, Fedora ]
+# ============================================================================== 
+sudo trust anchor --store <CERT>.crt
+
+# if the above doesn't work:
+# (for Arch)
+sudo cp <CERT>.crt /etc/ca-certificates/trust-source/anchors/
+# (for Fedora)
+sudo cp <CERT>.crt /etc/pki/ca-trust/source/anchors/
+
+sudo update-ca-trust
+
+# ==============================================================================
+# [ Debian, Ubuntu ]
+# ==============================================================================
+sudo cp <CERT>.crt /usr/local/share/ca-certificates
+sudo update-ca-certificates
+
+# ==============================================================================
+# [ Browsers ]
+# ==============================================================================
+chromeDB="sql:$HOME/.pki/nssdb"
+firefoxDB="$(find $HOME/.mozilla/firefox/ -type d -name \*.default)"
+
+certutil -d <DATABASE> -A -i <CERT>.cert -n "<NAME>" -t C,,
 ```
 
-**NOTE**: If the cert doesn't seem to be working, you may have to restart your Browser. You can try in Incognito first, but generally a Browser restart works. In some rare cases, a system reboot may be required (I've had to do this on OSX).
 
 ### In Firefox
 
@@ -98,6 +128,7 @@ sudo trust extract-compat
 - Click on `Import`
 - Find the `<CERTS>/localhost-CA.crt` file, and add it.
 - Check `Trust this CA to identify websites`.
+
 
 ### On Android
 
@@ -128,4 +159,11 @@ dc up
 ```
 
 Then go to something like: `https://app.local:3000/`
+
+---
+
+## Troubleshooting
+
+- If the cert doesn't seem to be working, you may have to restart your Browser. You can try in Incognito first, but generally a Browser restart works. In some rare cases, a system reboot may be required (I've had to do this on OSX).
+
 
